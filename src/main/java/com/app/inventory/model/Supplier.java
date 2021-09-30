@@ -1,15 +1,15 @@
-package com.example.inventory.supplier;
+package com.app.inventory.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
+@Table(name = "supplier")
 public class Supplier {
 
     @Id
     @Column(name = "sup_id")
-    private Integer id;
+    private int id;
 
     @Column(name = "sup_name")
     private String name;
@@ -29,11 +29,15 @@ public class Supplier {
     @Column(name = "sup_created_date")
     private String createdDate;
 
-    public Integer getId() {
+    @JoinColumn(name = "sup_id", referencedColumnName = "sup_id")
+    @OneToMany(fetch = FetchType.LAZY)
+    private List<SupplierContact> supplierContactList;
+
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -83,5 +87,13 @@ public class Supplier {
 
     public void setCreatedDate(String createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public List<SupplierContact> getSupplierContactList() {
+        return supplierContactList;
+    }
+
+    public void setSupplierContactList(List<SupplierContact> supplierContactList) {
+        this.supplierContactList = supplierContactList;
     }
 }

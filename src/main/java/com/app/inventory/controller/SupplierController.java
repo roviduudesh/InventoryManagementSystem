@@ -1,5 +1,7 @@
-package com.example.inventory.supplier;
+package com.app.inventory.controller;
 
+import com.app.inventory.model.Supplier;
+import com.app.inventory.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,16 +13,15 @@ import java.util.List;
 @RequestMapping(path = "api/v1/supplier")
 public class SupplierController {
 
-    private SupplierService supplierService;
+    private final SupplierService supplierService;
 
-    @Autowired
     public SupplierController(SupplierService supplierService) {
         this.supplierService = supplierService;
     }
 
-    @GetMapping
-    public List<Supplier> supplier(){
-        System.out.println("AAAAAAAA");
+    @GetMapping(value = "/all")
+    public List<Supplier> getSupplierList(){
         return supplierService.getSupplierList();
     }
+
 }

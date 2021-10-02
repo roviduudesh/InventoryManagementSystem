@@ -86,6 +86,6 @@ public class CustomerService {
         responseDto.setMessage("Successfully Updated");
         responseDto.setLocalDateTime(LocalDateTime.now());
 
-        return new ResponseEntity<>(new ResponseDto(), HttpStatus.OK);
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

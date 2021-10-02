@@ -19,18 +19,18 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping(value = "/all")
-    public List<User> getSupplierList(){
+    public List<User> getUserList(){
         return userService.getUserList();
     }
 
     @PostMapping
-    public ResponseEntity<?> addNewSupplier(@RequestBody UserDto userDto){
+    public ResponseEntity<?> addNewUser(@RequestBody UserDto userDto){
         ResponseEntity<?> responseDto = userService.createNewUser(userDto);
         return responseDto;
     }
 
     @PutMapping(path = "{supplierId}")
-    public ResponseEntity<?> updateSupplier(@PathVariable("supplierId") int supplierId,
+    public ResponseEntity<?> updateUser(@PathVariable("supplierId") int supplierId,
                                             @RequestParam(required = false) String firstName,
                                             @RequestParam(required = false) String lastName,
                                             @RequestParam(required = false) String contact){

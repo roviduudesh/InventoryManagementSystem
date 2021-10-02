@@ -30,7 +30,6 @@ public class CustomerController {
     @PutMapping(path = "{customerId}")
     public ResponseEntity<?> updateCustomer(@PathVariable("customerId") int customerId,
                                             @RequestBody CustomerDto customerDto){
-
         ResponseEntity<?> responseEntity = customerService.updateCustomer(customerId, customerDto);
         return responseEntity;
     }

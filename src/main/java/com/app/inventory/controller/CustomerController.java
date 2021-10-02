@@ -1,11 +1,10 @@
 package com.app.inventory.controller;
 
+import com.app.inventory.dto.CustomerDto;
 import com.app.inventory.model.Customer;
-import com.app.inventory.model.SupplierContact;
 import com.app.inventory.service.CustomerService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,5 +21,11 @@ public class CustomerController {
     @GetMapping(value = "/all")
     public List<Customer> getCustomerList(){
         return customerService.getCustomerList();
+    }
+
+    @PostMapping
+    public ResponseEntity<?> addNewCustomer(@RequestBody CustomerDto customerDto){
+        ResponseEntity<?> responseEntity = customerService.createNewCustomer(customerDto);
+        return responseEntity;
     }
 }

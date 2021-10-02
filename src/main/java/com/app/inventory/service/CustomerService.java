@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Data
@@ -63,6 +64,28 @@ public class CustomerService {
         responseDto.setLocalDateTime(LocalDateTime.now());
 
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
 
+    public ResponseEntity<?> updateCustomer(int customerId, CustomerDto customerDto) {
+
+        Optional<Customer> customerOptional = customerRepository.findById(customerId);
+
+        Customer customer = customerOptional.get();
+
+        customer.setFirstName(customerDto.getFirstName());
+        customer.setLastName(customerDto.getLastName());
+        customer.setAddress1(customerDto.getAddress1());
+        customer.setAddress2(customerDto.getAddress2());
+        customer.setAddress3(customerDto.getAddress3());
+        customer.setEmail(customerDto.getEmail());
+
+        customerRepository.save(customer);
+
+        ResponseDto responseDto = new ResponseDto();
+        responseDto.setStatus(1);
+        responseDto.setMessage("Successfully Updated");
+        responseDto.setLocalDateTime(LocalDateTime.now());
+
+        return new ResponseEntity<>(new ResponseDto(), HttpStatus.OK);
     }
 }

@@ -12,7 +12,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class NewSupplierDto {
+public class SupplierDto {
     private String name;
     private String address1;
     private String address2;

@@ -17,8 +17,9 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping(value = "/all")
-    public List<Supplier> getSupplierList(){
-        return supplierService.getSupplierList();
+    public ResponseEntity<?> getSupplierList(){
+        ResponseEntity<?> responseDto =  supplierService.getSupplierList();
+        return responseDto;
     }
 
     @PostMapping

@@ -1,5 +1,6 @@
 package com.app.inventory.controller;
 
+import com.app.inventory.dto.LoginDto;
 import com.app.inventory.dto.SupplierDto;
 import com.app.inventory.dto.UserDto;
 import com.app.inventory.model.Supplier;
@@ -19,7 +20,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping(value = "/all")
-    public List<User> getUserList(){
+    public ResponseEntity<?> getUserList(){
         return userService.getUserList();
     }
 
@@ -29,14 +30,18 @@ public class UserController {
         return responseDto;
     }
 
-    @PutMapping(path = "{supplierId}")
-    public ResponseEntity<?> updateUser(@PathVariable("supplierId") int supplierId,
+    @PutMapping(path = "{userId}")
+    public ResponseEntity<?> updateUser(@PathVariable("userId") int userId,
                                             @RequestParam(required = false) String firstName,
                                             @RequestParam(required = false) String lastName,
                                             @RequestParam(required = false) String contact){
-        ResponseEntity<?> responseEntity = userService.updateUser(supplierId, firstName, lastName, contact);
+        ResponseEntity<?> responseEntity = userService.updateUser(userId, firstName, lastName, contact);
         return responseEntity;
     }
 
-
+    @PostMapping(path = "/login")
+    public ResponseEntity<?> login(@RequestBody LoginDto loginDto){
+        ResponseEntity<?> responseDto = userService.login(loginDto);
+        return responseDto;
+    }
 }

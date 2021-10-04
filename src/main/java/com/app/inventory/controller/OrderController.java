@@ -17,8 +17,8 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping(value = "/all")
-    public List<OrderItem> getOrderList(){
-        return orderService.getOrderItemList();
+    public ResponseEntity<?> getOrderList(){
+        return orderService.getOrderList();
     }
 
     @PostMapping

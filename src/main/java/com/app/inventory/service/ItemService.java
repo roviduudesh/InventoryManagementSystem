@@ -21,26 +21,36 @@ public class ItemService {
 
     private final ItemRepository itemRepository;
 
-    public List<Item> getItemList(){
-        List<Item> itemList = itemRepository.findAll();
-        return itemList;
+    public ResponseEntity<?> getItemList(){
+        ResponseDto responseDto = new ResponseDto();
+        try {
+            List<Item> itemList = itemRepository.findAll();
+            responseDto.setStatus(HttpStatus.OK.value());
+            responseDto.setMessage("Item list");
+            responseDto.setData(itemList);
+        } catch (Exception ex){
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+        }
+        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewItem(ItemDto itemDto) {
-        Item item = new Item();
-
-        item.setName(itemDto.getName());
-        item.setQuantity(0.0);
-        item.setPrice(itemDto.getPrice());
-        item.setWarranty(itemDto.getWarranty());
-        item.setCreatedDate(LocalDateTime.now());
-        itemRepository.save(item);
-
         ResponseDto responseDto = new ResponseDto();
-        responseDto.setStatus(1);
-        responseDto.setMessage("Successfully Inserted");
-        responseDto.setLocalDateTime(LocalDateTime.now());
-
+        try {
+            Item item = new Item();
+            item.setName(itemDto.getName());
+            item.setQuantity(0.0);
+            item.setPrice(itemDto.getPrice());
+            item.setWarranty(itemDto.getWarranty());
+            item.setCreatedDate(LocalDateTime.now());
+            itemRepository.save(item);
+            responseDto.setStatus(HttpStatus.OK.value());
+            responseDto.setMessage("Successfully Inserted");
+        } catch (Exception ex){
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+        }
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
@@ -48,19 +58,29 @@ public class ItemService {
                                         String itemName,
                                         double price,
                                         int warranty) {
-        Optional<Item> itemOptional = itemRepository.findById(itemId);
-        Item item = itemOptional.get();
-
-        item.setName(itemName);
-        item.setPrice(price);
-        item.setWarranty(warranty);
-        itemRepository.save(item);
-
         ResponseDto responseDto = new ResponseDto();
-        responseDto.setStatus(1);
-        responseDto.setMessage("Successfully Updated");
-        responseDto.setLocalDateTime(LocalDateTime.now());
-
+        int status;
+        String message;
+        try {
+            Optional<Item> itemOptional = itemRepository.findById(itemId);
+            if(itemOptional.isPresent()){
+                Item item = itemOptional.get();
+                item.setName(itemName);
+                item.setPrice(price);
+                item.setWarranty(warranty);
+                itemRepository.save(item);
+                status = HttpStatus.OK.value();
+                message = "Successfully Updated";
+            } else{
+                status = HttpStatus.NO_CONTENT.value();
+                message = "Item Not Found";
+            }
+            responseDto.setStatus(status);
+            responseDto.setMessage(message);
+        } catch (Exception ex){
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+        }
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 }

@@ -8,6 +8,5 @@ import java.time.LocalDateTime;
 public class ResponseDto {
     private int status;
     private String message;
-    private String error;
-    private LocalDateTime localDateTime;
+    private Object data;
 }

@@ -20,13 +20,13 @@ public class Supplier implements Serializable {
     private String name;
 
     @Column(name = "sup_add_1")
-    private String line1;
+    private String address1;
 
     @Column(name = "sup_add_2")
-    private String line2;
+    private String address2;
 
     @Column(name = "sup_add_3")
-    private String line3;
+    private String address3;
 
     @Column(name = "sup_email")
     private String email;

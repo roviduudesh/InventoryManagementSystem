@@ -35,9 +35,9 @@ public class SupplierService {
         List<SupplierContact> supplierContactList = new ArrayList<>();
 
         supplier.setName(supplierDto.getName());
-        supplier.setLine1(supplierDto.getAddress1());
-        supplier.setLine2(supplierDto.getAddress2());
-        supplier.setLine3(supplierDto.getAddress3());
+        supplier.setAddress1(supplierDto.getAddress1());
+        supplier.setAddress2(supplierDto.getAddress2());
+        supplier.setAddress3(supplierDto.getAddress3());
         supplier.setCreatedDate(LocalDateTime.now());
         supplier.setEmail(supplierDto.getEmail());
         supplierRepository.save(supplier);
@@ -73,9 +73,9 @@ public class SupplierService {
         Supplier supplier = supplierOptional.get();
 
         supplier.setName(supplierDto.getName());
-        supplier.setLine1(supplierDto.getAddress1());
-        supplier.setLine2(supplierDto.getAddress2());
-        supplier.setLine3(supplierDto.getAddress3());
+        supplier.setAddress1(supplierDto.getAddress1());
+        supplier.setAddress2(supplierDto.getAddress2());
+        supplier.setAddress3(supplierDto.getAddress3());
         supplier.setEmail(supplierDto.getEmail());
         supplierRepository.save(supplier);
 

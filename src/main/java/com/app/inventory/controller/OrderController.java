@@ -1,14 +1,12 @@
 package com.app.inventory.controller;
 
-import com.app.inventory.dto.OrderDto;
-import com.app.inventory.model.OrderItem;
+import com.app.inventory.dto.order.OrderDto;
 import com.app.inventory.service.OrderService;
 import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
+@CrossOrigin(origins = "*")
 @Data
 @RestController
 @RequestMapping(path = "api/v1/order")

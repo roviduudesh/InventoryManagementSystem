@@ -27,13 +27,16 @@ public class Stock implements Serializable {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Supplier supplier;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id", referencedColumnName = "item_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Item item;
+//    @Column(name = "item_id")
+//    private int itemId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", referencedColumnName = "item_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private Item item;
 }

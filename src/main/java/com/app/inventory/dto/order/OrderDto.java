@@ -1,6 +1,5 @@
-package com.app.inventory.dto;
+package com.app.inventory.dto.order;
 
-import com.app.inventory.model.OrderItem;
 import lombok.Data;
 
 import java.util.List;

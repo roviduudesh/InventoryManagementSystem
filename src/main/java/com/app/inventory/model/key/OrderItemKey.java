@@ -11,7 +11,7 @@ import java.io.Serializable;
 public class OrderItemKey implements Serializable {
 
     @Column(name = "order_id")
-    private int orderId;
+    private String orderId;
 
     @Column(name = "item_id")
     private int itemId;

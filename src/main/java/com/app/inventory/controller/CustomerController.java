@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @Data
 @RestController
 @RequestMapping(path = "/api/v1/customer")
@@ -31,6 +32,12 @@ public class CustomerController {
     public ResponseEntity<?> updateCustomer(@PathVariable("customerId") int customerId,
                                             @RequestBody CustomerDto customerDto){
         ResponseEntity<?> responseEntity = customerService.updateCustomer(customerId, customerDto);
+        return responseEntity;
+    }
+
+    @DeleteMapping(path = "{customerId}")
+    public ResponseEntity<?> deleteSupplier(@PathVariable("customerId") int customerId){
+        ResponseEntity<?> responseEntity = customerService.deleteCustomer(customerId);
         return responseEntity;
     }
 }

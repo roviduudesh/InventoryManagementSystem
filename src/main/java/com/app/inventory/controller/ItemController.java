@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @Data
 @RestController
 @RequestMapping(path = "/api/v1/item")
@@ -21,6 +22,12 @@ public class ItemController {
         return itemService.getItemList();
     }
 
+    @GetMapping(value = "/stock_item")
+    public ResponseEntity<?> getSupForStock(){
+        ResponseEntity<?> responseDto =  itemService.getItemIdNameList();
+        return responseDto;
+    }
+
     @PostMapping
     public ResponseEntity<?> addNewItem(@RequestBody ItemDto itemDto){
         ResponseEntity<?> responseEntity = itemService.createNewItem(itemDto);
@@ -28,11 +35,14 @@ public class ItemController {
     }
 
     @PutMapping(path = "{itemId}")
-    public ResponseEntity<?> updateItem(@PathVariable("itemId") int itemId,
-                                            @RequestParam(required = false) String name,
-                                            @RequestParam(required = false) double price,
-                                            @RequestParam(required = false) int warranty){
-        ResponseEntity<?> responseEntity = itemService.updateItem(itemId, name, price, warranty);
+    public ResponseEntity<?> updateItem(@PathVariable("itemId") int itemId, @RequestBody ItemDto itemDto){
+        ResponseEntity<?> responseEntity = itemService.updateItem(itemId, itemDto);
+        return responseEntity;
+    }
+
+    @DeleteMapping(path = "{itemId}")
+    public ResponseEntity<?> deleteItem(@PathVariable("itemId") int itemId){
+        ResponseEntity<?> responseEntity = itemService.deleteItem(itemId);
         return responseEntity;
     }
 }

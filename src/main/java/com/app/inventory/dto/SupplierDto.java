@@ -13,10 +13,11 @@ import java.util.List;
 @Getter
 @Setter
 public class SupplierDto {
-    private String name;
+    private int id;
+    private String supName;
     private String address1;
     private String address2;
     private String address3;
     private String email;
-    private List<String> contactList;
+    private String contact;
 }

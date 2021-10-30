@@ -5,4 +5,6 @@ import com.app.inventory.model.key.CustomerContactKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CustomerContactRepository extends JpaRepository<CustomerContact, CustomerContactKey> {
+
+    void deleteByCustomerContactKey_CustomerId(int id);
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @Data
 @RestController
 @RequestMapping(path = "api/v1/supplier")
@@ -22,6 +23,12 @@ public class SupplierController {
         return responseDto;
     }
 
+    @GetMapping(value = "/stock_supplier")
+    public ResponseEntity<?> getSupForStock(){
+        ResponseEntity<?> responseDto =  supplierService.getSupIdNameList();
+        return responseDto;
+    }
+
     @PostMapping
     public ResponseEntity<?> addNewSupplier(@RequestBody SupplierDto newSupplierDto){
         ResponseEntity<?> responseDto = supplierService.createNewSupplier(newSupplierDto);
@@ -32,6 +39,12 @@ public class SupplierController {
     public ResponseEntity<?> updateSupplier(@PathVariable("supplierId") int supplierId,
                                             @RequestBody SupplierDto supplierDto){
         ResponseEntity<?> responseEntity = supplierService.updateSupplier(supplierId, supplierDto);
+        return responseEntity;
+    }
+
+    @DeleteMapping(path = "{supplierId}")
+    public ResponseEntity<?> deleteSupplier(@PathVariable("supplierId") int supplierId){
+        ResponseEntity<?> responseEntity = supplierService.deleteSupplier(supplierId);
         return responseEntity;
     }
 }

@@ -42,4 +42,8 @@ public class Customer implements Serializable {
     @JoinColumn(name = "cus_id", referencedColumnName = "cus_id")
     @OneToMany(fetch = FetchType.LAZY)
     private List<CustomerContact> customerContactList;
+
+    @JoinColumn(name = "cus_id", referencedColumnName = "cus_id")
+    @OneToMany(fetch = FetchType.LAZY)
+    private List<Order> orderList;
 }

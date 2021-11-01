@@ -3,6 +3,7 @@ package com.app.inventory.service;
 import com.app.inventory.dto.IdNameDto;
 import com.app.inventory.dto.SupplierDto;
 import com.app.inventory.dto.ResponseDto;
+import com.app.inventory.dto.ValidateDto;
 import com.app.inventory.model.Customer;
 import com.app.inventory.model.Stock;
 import com.app.inventory.model.key.SupplierContactKey;
@@ -66,41 +67,96 @@ public class SupplierService {
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
+    ValidateDto validateSupplier(SupplierDto supplierDto) throws Exception{
+        ValidateDto validateDto = new ValidateDto();
+        Optional<Supplier> supplierOptional;
+        boolean isValid = true;
+        String message = null;
+        List<Supplier> supplierList = supplierRepository.findAll();
+
+        supplierOptional = supplierList.stream()
+                .filter(s -> s.getId() != supplierDto.getId() && s.getName().equalsIgnoreCase(supplierDto.getSupName()))
+                .findFirst();
+        List<String> contactList = Arrays.asList(supplierDto.getContact().split("\\s*,\\s*"));
+        Optional<String> invalidContact = contactList.stream()
+                .filter(c -> !c.isEmpty() && c.length() != 10)
+                .findAny();
+        if(invalidContact.isPresent()){
+            isValid = false;
+            message = "Invalid Contact Number";
+        } else if(supplierOptional.isPresent()){
+            isValid = false;
+            message = "Name Exists";
+        } else {
+            supplierOptional = supplierList.stream()
+                    .filter(s -> s.getId() != supplierDto.getId() && !s.getEmail().isEmpty() && s.getEmail().equalsIgnoreCase(supplierDto.getEmail()))
+                    .findFirst();
+            if (supplierOptional.isPresent()) {
+                isValid = false;
+                message = "Email Exists";
+            }
+        }
+        validateDto.setValid(isValid);
+        validateDto.setMessage(message);
+        return validateDto;
+    }
+
     public ResponseEntity<?> createNewSupplier(SupplierDto supplierDto) {
         ResponseDto responseDto = new ResponseDto();
+        int status;
+        String message;
         try {
-            Supplier supplier = new Supplier();
-            supplier.setName(supplierDto.getSupName());
-            supplier.setAddress1(supplierDto.getAddress1());
-            supplier.setAddress2(supplierDto.getAddress2());
-            supplier.setAddress3(supplierDto.getAddress3());
-            supplier.setCreatedDate(LocalDateTime.now());
-            supplier.setEmail(supplierDto.getEmail());
-            supplierRepository.save(supplier);
+            ValidateDto validateDto = validateSupplier(supplierDto);
 
-            supplier = supplierRepository.findTopByOrderByIdDesc();
-            List<SupplierContact> supplierContactList = new ArrayList<>();
-            SupplierContact supplierContact;
-            SupplierContactKey supplierContactKey;
-            List<String> contactList = Arrays.asList(supplierDto.getContact().split("\\s*,\\s*"));
-            for (String contactNumber : contactList) {
-                supplierContactKey = new SupplierContactKey();
-                supplierContactKey.setSupplierId(supplier.getId());
-                supplierContactKey.setContact(contactNumber);
+            if(!validateDto.isValid()){
+                status = HttpStatus.NOT_ACCEPTABLE.value();
+                message = validateDto.getMessage();
+            } else {
+                Supplier supplier = new Supplier();
+                supplier.setName(supplierDto.getSupName());
+                supplier.setAddress1(supplierDto.getAddress1());
+                supplier.setAddress2(supplierDto.getAddress2());
+                supplier.setAddress3(supplierDto.getAddress3());
+                supplier.setCreatedDate(LocalDateTime.now());
+                supplier.setEmail(supplierDto.getEmail());
+                supplierRepository.save(supplier);
 
-                supplierContact = new SupplierContact();
-                supplierContact.setSupConKey(supplierContactKey);
-                supplierContactList.add(supplierContact);
+                supplier = supplierRepository.findTopByOrderByIdDesc();
+                setSupplierContact(supplier.getId(), supplierDto.getContact(), "insert");
+//                if(validateDto.isValid()){
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Inserted";
+
             }
-            supplierContactRepository.saveAll(supplierContactList);
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Successfully Inserted");
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity(responseDto, HttpStatus.OK);
+    }
+
+    void setSupplierContact(int supplierId, String contact, String process) throws Exception{
+        ValidateDto validateDto = new ValidateDto();
+        List<SupplierContact> supplierContactList = new ArrayList<>();
+        SupplierContact supplierContact;
+        SupplierContactKey supplierContactKey;
+        List<String> contactList = Arrays.asList(contact.split("\\s*,\\s*"));
+
+        for (String contactNumber : contactList) {
+            supplierContactKey = new SupplierContactKey();
+            supplierContactKey.setSupplierId(supplierId);
+            supplierContactKey.setContact(contactNumber);
+
+            supplierContact = new SupplierContact();
+            supplierContact.setSupConKey(supplierContactKey);
+            supplierContactList.add(supplierContact);
+        }
+        if(process.equalsIgnoreCase("update")){
+            supplierContactRepository.deleteBySupConKey_SupplierId(supplierId);
+        }
+        supplierContactRepository.saveAll(supplierContactList);
     }
 
     public ResponseEntity<?> updateSupplier(int supplierId, SupplierDto supplierDto) {
@@ -108,46 +164,38 @@ public class SupplierService {
         int status;
         String message;
         try {
-            Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
-            if(supplierOptional.isPresent()){
-                Supplier supplier = supplierOptional.get();
-                supplier.setName(supplierDto.getSupName());
-                supplier.setAddress1(supplierDto.getAddress1());
-                supplier.setAddress2(supplierDto.getAddress2());
-                supplier.setAddress3(supplierDto.getAddress3());
-                supplier.setEmail(supplierDto.getEmail());
-                supplierRepository.save(supplier);
+            ValidateDto validateDto = validateSupplier(supplierDto);
 
-                List<SupplierContact> supplierContactList = new ArrayList<>();
-                SupplierContact supplierContact;
-                SupplierContactKey supplierContactKey;
-                List<String> contactList = Arrays.asList(supplierDto.getContact().split("\\s*,\\s*"));
-                for (String contactNumber : contactList) {
-                    supplierContactKey = new SupplierContactKey();
-                    supplierContactKey.setSupplierId(supplier.getId());
-                    supplierContactKey.setContact(contactNumber);
-
-                    supplierContact = new SupplierContact();
-                    supplierContact.setSupConKey(supplierContactKey);
-                    supplierContactList.add(supplierContact);
-                }
-                supplierContactRepository.deleteBySupConKey_SupplierId(supplier.getId());
-                supplierContactRepository.saveAll(supplierContactList);
-
-                status = HttpStatus.OK.value();
-                message = "Successfully Updated";
+            if(!validateDto.isValid()){
+                status = HttpStatus.NOT_ACCEPTABLE.value();
+                message = validateDto.getMessage();
             } else {
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Supplier Not Found";
+                Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
+                if (supplierOptional.isPresent()) {
+                    Supplier supplier = supplierOptional.get();
+                    supplier.setName(supplierDto.getSupName());
+                    supplier.setAddress1(supplierDto.getAddress1());
+                    supplier.setAddress2(supplierDto.getAddress2());
+                    supplier.setAddress3(supplierDto.getAddress3());
+                    supplier.setEmail(supplierDto.getEmail());
+                    supplierRepository.save(supplier);
+
+                    setSupplierContact(supplierId, supplierDto.getContact(), "update");
+
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Updated";
+                } else {
+                    status = HttpStatus.NO_CONTENT.value();
+                    message = "Supplier Not Found";
+                }
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
-            System.out.println(ex.getLocalizedMessage());
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            ex.printStackTrace();
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = ex.getMessage();
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 

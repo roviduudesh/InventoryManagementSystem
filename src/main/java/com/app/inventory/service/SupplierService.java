@@ -4,11 +4,11 @@ import com.app.inventory.dto.IdNameDto;
 import com.app.inventory.dto.SupplierDto;
 import com.app.inventory.dto.ResponseDto;
 import com.app.inventory.dto.ValidateDto;
-import com.app.inventory.model.Customer;
 import com.app.inventory.model.Stock;
 import com.app.inventory.model.key.SupplierContactKey;
 import com.app.inventory.model.Supplier;
 import com.app.inventory.model.SupplierContact;
+import com.app.inventory.repository.StockRepository;
 import com.app.inventory.repository.SupplierContactRepository;
 import com.app.inventory.repository.SupplierRepository;
 import lombok.Data;
@@ -30,6 +30,7 @@ public class SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final SupplierContactRepository supplierContactRepository;
+    private final StockRepository stockRepository;
 
     public ResponseEntity<?> getSupplierList(){
         ResponseDto responseDto = new ResponseDto();
@@ -70,17 +71,20 @@ public class SupplierService {
     ValidateDto validateSupplier(SupplierDto supplierDto) throws Exception{
         ValidateDto validateDto = new ValidateDto();
         Optional<Supplier> supplierOptional;
+        Optional<String> invalidContact = Optional.empty();
         boolean isValid = true;
         String message = null;
         List<Supplier> supplierList = supplierRepository.findAll();
 
         supplierOptional = supplierList.stream()
-                .filter(s -> s.getId() != supplierDto.getId() && s.getName().equalsIgnoreCase(supplierDto.getSupName()))
+                .filter(s -> s.getId() != supplierDto.getId() && s.getName().equalsIgnoreCase(supplierDto.getSupName().trim()))
                 .findFirst();
-        List<String> contactList = Arrays.asList(supplierDto.getContact().split("\\s*,\\s*"));
-        Optional<String> invalidContact = contactList.stream()
-                .filter(c -> !c.isEmpty() && c.length() != 10)
-                .findAny();
+        if(supplierDto.getContact() != null) {
+            List<String> contactList = Arrays.asList(supplierDto.getContact().split("\\s*,\\s*"));
+            invalidContact = contactList.stream()
+                    .filter(c -> !c.isEmpty() && c.length() != 10)
+                    .findAny();
+        }
         if(invalidContact.isPresent()){
             isValid = false;
             message = "Invalid Contact Number";
@@ -89,7 +93,7 @@ public class SupplierService {
             message = "Name Exists";
         } else {
             supplierOptional = supplierList.stream()
-                    .filter(s -> s.getId() != supplierDto.getId() && !s.getEmail().isEmpty() && s.getEmail().equalsIgnoreCase(supplierDto.getEmail()))
+                    .filter(s -> s.getId() != supplierDto.getId() && !s.getEmail().isEmpty() && s.getEmail().equalsIgnoreCase(supplierDto.getEmail().trim()))
                     .findFirst();
             if (supplierOptional.isPresent()) {
                 isValid = false;
@@ -122,10 +126,11 @@ public class SupplierService {
                 supplierRepository.save(supplier);
 
                 supplier = supplierRepository.findTopByOrderByIdDesc();
-                setSupplierContact(supplier.getId(), supplierDto.getContact(), "insert");
-//                if(validateDto.isValid()){
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Inserted";
+                if(supplierDto.getContact() != null) {
+                    setSupplierContact(supplier.getId(), supplierDto.getContact(), "insert");
+                }
+                status = HttpStatus.OK.value();
+                message = "Successfully Inserted";
 
             }
         } catch (Exception ex){
@@ -180,8 +185,9 @@ public class SupplierService {
                     supplier.setEmail(supplierDto.getEmail());
                     supplierRepository.save(supplier);
 
-                    setSupplierContact(supplierId, supplierDto.getContact(), "update");
-
+                    if(supplierDto.getContact() != null) {
+                        setSupplierContact(supplierId, supplierDto.getContact(), "update");
+                    }
                     status = HttpStatus.OK.value();
                     message = "Successfully Updated";
                 } else {
@@ -201,15 +207,31 @@ public class SupplierService {
 
     public ResponseEntity<?> deleteSupplier(int supplierId) {
         ResponseDto responseDto = new ResponseDto();
-
-        Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
-        if(supplierOptional.isPresent()) {
-            supplierRepository.deleteSupplier(supplierId);
-
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Successfully Deleted");
-            responseDto.setData(null);
+        int status;
+        String message;
+        try {
+            Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
+            if (supplierOptional.isPresent()) {
+                List<Stock> optionalStockList = stockRepository.findAllBySupplier(supplierOptional.get());
+                if (optionalStockList.isEmpty()) {
+                    supplierRepository.deleteSupplier(supplierId);
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Deleted";
+                } else {
+                    status = HttpStatus.NOT_ACCEPTABLE.value();
+                    message = "Supplier has Stocks";
+                }
+            } else{
+                status = HttpStatus.NO_CONTENT.value();
+                message = "Supplier not Found";
+            }
+        } catch (Exception ex){
+            ex.printStackTrace();
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = ex.getMessage();
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 

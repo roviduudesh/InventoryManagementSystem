@@ -3,6 +3,7 @@ package com.app.inventory.service;
 import com.app.inventory.dto.CustomerDto;
 import com.app.inventory.dto.ResponseDto;
 import com.app.inventory.dto.SupplierDto;
+import com.app.inventory.dto.ValidateDto;
 import com.app.inventory.model.Customer;
 import com.app.inventory.model.CustomerContact;
 import com.app.inventory.model.Supplier;
@@ -34,7 +35,7 @@ public class CustomerService {
     public ResponseEntity<?> getCustomerList(){
         ResponseDto responseDto = new ResponseDto();
         try {
-            List<Customer> customerList = customerRepository.findAll();
+            List<Customer> customerList = customerRepository.findAllByOrderByFirstNameAsc();
             List<CustomerDto> customerDtoList = new ArrayList<>();
             CustomerDto customerDto;
             String contact;
@@ -68,43 +69,90 @@ public class CustomerService {
     }
 
     public ResponseEntity<?> createNewCustomer(CustomerDto customerDto) {
+        int status;
+        String message;
         ResponseDto responseDto = new ResponseDto();
         try {
-            Customer customer = new Customer();
-            List<CustomerContact> customerContactList = new ArrayList<>();
+            ValidateDto validateDto = validateCustomer(customerDto);
+            if(!validateDto.isValid()){
+                status = HttpStatus.NOT_ACCEPTABLE.value();
+                message = validateDto.getMessage();
+            } else {
+                Customer customer = new Customer();
 
-            customer.setFirstName(customerDto.getFirstName());
-            customer.setLastName(customerDto.getLastName());
-            customer.setAddress1(customerDto.getAddress1());
-            customer.setAddress2(customerDto.getAddress2());
-            customer.setAddress3(customerDto.getAddress3());
-            customer.setEmail(customerDto.getEmail());
-            customer.setCreatedDate(LocalDateTime.now());
-            customerRepository.save(customer);
+                customer.setFirstName(customerDto.getFirstName());
+                customer.setLastName(customerDto.getLastName());
+                customer.setAddress1(customerDto.getAddress1());
+                customer.setAddress2(customerDto.getAddress2());
+                customer.setAddress3(customerDto.getAddress3());
+                customer.setEmail(customerDto.getEmail());
+                customer.setCreatedDate(LocalDateTime.now());
+                customerRepository.save(customer);
 
-            customer = customerRepository.findTopByOrderByIdDesc();
-
-            CustomerContact customerContact;
-            CustomerContactKey customerContactKey;
-            List<String> contactList = Arrays.asList(customerDto.getContact().split("\\s*,\\s*"));
-            for (String contactNumber : contactList) {
-                customerContactKey = new CustomerContactKey();
-                customerContactKey.setCustomerId(customer.getId());
-                customerContactKey.setContact(contactNumber);
-
-                customerContact = new CustomerContact();
-                customerContact.setCustomerContactKey(customerContactKey);
-                customerContactList.add(customerContact);
+                customer = customerRepository.findTopByOrderByIdDesc();
+                if(customerDto.getContact() != null) {
+                    setCustomerContact(customer.getId(), customerDto.getContact(), "insert");
+                }
+                status = HttpStatus.OK.value();
+                message = "Successfully Inserted";
             }
-            customerContactRepository.saveAll(customerContactList);
-
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Success");
         } catch(Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
+
+    ValidateDto validateCustomer(CustomerDto customerDto) throws Exception{
+        ValidateDto validateDto = new ValidateDto();
+        Optional<Customer> customerOptional;
+        Optional<String> invalidContact = Optional.empty();
+        boolean isValid = true;
+        String message = null;
+        List<Customer> customerList = customerRepository.findAll();
+        customerOptional = customerList.stream()
+                .filter(c -> c.getId() != customerDto.getId() && !c.getEmail().isEmpty() && c.getEmail().equalsIgnoreCase(customerDto.getEmail().trim()))
+                .findFirst();
+        if(customerDto.getContact() != null) {
+            List<String> contactList = Arrays.asList(customerDto.getContact().split("\\s*,\\s*"));
+            invalidContact = contactList.stream()
+                    .filter(c -> !c.isEmpty() && c.length() != 10)
+                    .findAny();
+        }
+        if(invalidContact.isPresent()){
+            isValid = false;
+            message = "Invalid Contact Number";
+        } else if (customerOptional.isPresent()) {
+            isValid = false;
+            message = "Email Exists";
+        }
+        validateDto.setValid(isValid);
+        validateDto.setMessage(message);
+        return validateDto;
+    }
+
+    void setCustomerContact(int customerId, String contact, String process) throws Exception{
+        ValidateDto validateDto = new ValidateDto();
+        List<CustomerContact> customerContactList = new ArrayList<>();
+        CustomerContact customerContact;
+        CustomerContactKey customerContactKey;
+        List<String> contactList = Arrays.asList(contact.split("\\s*,\\s*"));
+
+        for (String contactNumber : contactList) {
+            customerContactKey = new CustomerContactKey();
+            customerContactKey.setCustomerId(customerId);
+            customerContactKey.setContact(contactNumber);
+
+            customerContact = new CustomerContact();
+            customerContact.setCustomerContactKey(customerContactKey);
+            customerContactList.add(customerContact);
+        }
+        if(process.equalsIgnoreCase("update")){
+            customerContactRepository.deleteByCustomerContactKey_CustomerId(customerId);
+        }
+        customerContactRepository.saveAll(customerContactList);
     }
 
     public ResponseEntity<?> updateCustomer(int customerId, CustomerDto customerDto) {
@@ -112,38 +160,32 @@ public class CustomerService {
         int status;
         String message;
         try {
-            Optional<Customer> customerOptional = customerRepository.findById(customerId);
-            if(customerOptional.isPresent()) {
-                Customer customer = customerOptional.get();
-                customer.setFirstName(customerDto.getFirstName());
-                customer.setLastName(customerDto.getLastName());
-                customer.setAddress1(customerDto.getAddress1());
-                customer.setAddress2(customerDto.getAddress2());
-                customer.setAddress3(customerDto.getAddress3());
-                customer.setEmail(customerDto.getEmail());
-                customerRepository.save(customer);
+            ValidateDto validateDto = validateCustomer(customerDto);
 
-                List<CustomerContact> customerContactList = new ArrayList<>();
-                CustomerContact customerContact;
-                CustomerContactKey customerContactKey;
-                List<String> contactList = Arrays.asList(customerDto.getContact().split("\\s*,\\s*"));
-                for (String contactNumber : contactList) {
-                    customerContactKey = new CustomerContactKey();
-                    customerContactKey.setCustomerId(customer.getId());
-                    customerContactKey.setContact(contactNumber);
+            if(!validateDto.isValid()){
+                status = HttpStatus.NOT_ACCEPTABLE.value();
+                message = validateDto.getMessage();
+            } else {
+                Optional<Customer> customerOptional = customerRepository.findById(customerId);
+                if (customerOptional.isPresent()) {
+                    Customer customer = customerOptional.get();
+                    customer.setFirstName(customerDto.getFirstName());
+                    customer.setLastName(customerDto.getLastName());
+                    customer.setAddress1(customerDto.getAddress1());
+                    customer.setAddress2(customerDto.getAddress2());
+                    customer.setAddress3(customerDto.getAddress3());
+                    customer.setEmail(customerDto.getEmail());
+                    customerRepository.save(customer);
 
-                    customerContact = new CustomerContact();
-                    customerContact.setCustomerContactKey(customerContactKey);
-                    customerContactList.add(customerContact);
+                    if(customerDto.getContact() != null) {
+                        setCustomerContact(customerId, customerDto.getContact(), "update");
+                    }
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Updated";
+                } else {
+                    status = HttpStatus.NO_CONTENT.value();
+                    message = "Customer Not Found";
                 }
-                customerContactRepository.deleteByCustomerContactKey_CustomerId(customer.getId());
-                customerContactRepository.saveAll(customerContactList);
-
-                status = HttpStatus.OK.value();
-                message = "Successfully Updated";
-            } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Customer Not Found";
             }
         } catch (Exception ex){
             ex.printStackTrace();

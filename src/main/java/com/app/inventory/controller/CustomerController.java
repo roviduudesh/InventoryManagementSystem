@@ -22,6 +22,12 @@ public class CustomerController {
         return customerService.getCustomerList();
     }
 
+    @GetMapping(value = "/customer_id_name")
+    public ResponseEntity<?> getSupForStock(){
+        ResponseEntity<?> responseDto =  customerService.getCusIdNameList();
+        return responseDto;
+    }
+
     @PostMapping
     public ResponseEntity<?> addNewCustomer(@RequestBody CustomerDto customerDto){
         ResponseEntity<?> responseEntity = customerService.createNewCustomer(customerDto);

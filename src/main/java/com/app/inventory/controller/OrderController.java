@@ -1,10 +1,13 @@
 package com.app.inventory.controller;
 
-import com.app.inventory.dto.order.OrderDto;
+import com.app.inventory.dto.order.NewOrderDto;
+import com.app.inventory.model.Order;
 import com.app.inventory.service.OrderService;
 import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @CrossOrigin(origins = "*")
 @Data
@@ -20,8 +23,8 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addNewOrder(@RequestBody OrderDto orderDto){
-        ResponseEntity<?> responseEntity = orderService.createNewOrder(orderDto);
+    public ResponseEntity<?> addNewOrder(@RequestBody List<NewOrderDto> orderItemDtoList){
+        ResponseEntity<?> responseEntity = orderService.createNewOrder(orderItemDtoList);
         return responseEntity;
     }
 }

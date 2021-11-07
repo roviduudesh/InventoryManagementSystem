@@ -1,6 +1,6 @@
 package com.app.inventory.service;
 
-import com.app.inventory.dto.order.OrderDto;
+import com.app.inventory.dto.order.NewOrderDto;
 import com.app.inventory.dto.order.OrderItemDto;
 import com.app.inventory.dto.ResponseDto;
 import com.app.inventory.dto.order.ViewOrderDto;
@@ -33,27 +33,33 @@ public class OrderService {
         ResponseDto responseDto = new ResponseDto();
         ViewOrderDto viewOrderDto = null;
         List<ViewOrderDto> viewOrderDtoList = new ArrayList<>();
-        String itemString;
-        String qtyString;
-        String amountString;
+        List<OrderItemDto> orderItemDtoList = null;
+        OrderItemDto orderItemDto;
         try {
             List<Order> orderList = orderRepository.findAll();
             for (Order order : orderList) {
-                itemString = "";
                 viewOrderDto = new ViewOrderDto();
                 viewOrderDto.setOrderId(order.getId());
                 viewOrderDto.setOrderDate(order.getOrderDate());
                 viewOrderDto.setCustomerName(order.getCustomer().getFirstName() + " " + order.getCustomer().getLastName());
-                for (OrderItem orderItem : order.getOrderItemList()){
-                    Optional<Item> itemOptional = itemRepository.findById(orderItem.getOrderItemKey().getItemId());
-                    itemString = itemString + ", " + itemOptional.get().getName();
-                }
-                viewOrderDto.setItemString(itemString.substring(1));
                 viewOrderDto.setTotalAmount(order.getOrderItemList().stream().mapToDouble(i -> i.getAmount()).sum());
+                orderItemDtoList = new ArrayList<>();
+                for (OrderItem orderItem : order.getOrderItemList()) {
+                    Optional<Item> itemOptional = itemRepository.findById(orderItem.getOrderItemKey().getItemId());
 
+                    Item item = itemOptional.get();
+
+                    orderItemDto = new OrderItemDto();
+                    orderItemDto.setItemId(item.getId());
+                    orderItemDto.setItemName(item.getName());
+                    orderItemDto.setQuantity(orderItem.getQuantity());
+                    orderItemDto.setAmount(orderItem.getAmount());
+                    orderItemDtoList.add(orderItemDto);
+                }
+
+                viewOrderDto.setOrderItemList(orderItemDtoList);
                 viewOrderDtoList.add(viewOrderDto);
             }
-
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("Order List");
             responseDto.setData(viewOrderDtoList);
@@ -80,8 +86,9 @@ public class OrderService {
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
-    public ResponseEntity<?> createNewOrder(OrderDto orderDto) {
+    public ResponseEntity<?> createNewOrder(List<NewOrderDto> orderDtoList) {
         ResponseDto responseDto = new ResponseDto();
+        int customerId;
         int status;
         String message;
         try {
@@ -89,9 +96,10 @@ public class OrderService {
             String orderId = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
             order.setId(orderId);
             order.setOrderDate(LocalDateTime.now());
+            customerId = orderDtoList.get(0).getCustomerId();
 
-            Optional<Customer> customerOptional = customerRepository.findById(orderDto.getCustomerId());
-            Optional<User> userOptional = userRepository.findById(orderDto.getUserId());
+            Optional<Customer> customerOptional = customerRepository.findById(customerId);
+            Optional<User> userOptional = userRepository.findById(1);
 
             if(!customerOptional.isPresent()){
                 status = HttpStatus.NO_CONTENT.value();
@@ -106,15 +114,25 @@ public class OrderService {
 
                 OrderItem orderItem;
                 OrderItemKey orderItemKey;
-                for (OrderItemDto orderItemDto : orderDto.getOrderItemList()) {
+                Optional<Item> itemOptional;
+                Item item;
+                for (NewOrderDto newOrderDto : orderDtoList) {
+                    int itemId = newOrderDto.getItemId();
+                    double orderQuantity = newOrderDto.getQuantity();
+                    itemOptional = itemRepository.findById(itemId);
+                    item = itemOptional.get();
+
+                    item.setQuantity(item.getQuantity() - orderQuantity);
+                    itemRepository.save(item);
+
                     orderItemKey = new OrderItemKey();
                     orderItemKey.setOrderId(order.getId());
-                    orderItemKey.setItemId(orderItemDto.getItemId());
+                    orderItemKey.setItemId(itemId);
 
                     orderItem = new OrderItem();
                     orderItem.setOrderItemKey(orderItemKey);
-                    orderItem.setQuantity(orderItemDto.getQuantity());
-                    orderItem.setAmount(orderItemDto.getAmount());
+                    orderItem.setQuantity(orderQuantity);
+                    orderItem.setAmount(newOrderDto.getAmount());
                     orderItemRepository.save(orderItem);
                 }
                 status = HttpStatus.OK.value();
@@ -124,10 +142,12 @@ public class OrderService {
             responseDto.setMessage(message);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
             responseDto.setData(null);
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 }

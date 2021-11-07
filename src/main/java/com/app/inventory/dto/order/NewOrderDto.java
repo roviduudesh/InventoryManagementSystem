@@ -2,11 +2,12 @@ package com.app.inventory.dto.order;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
-public class OrderItemDto {
-    private int itemId;
+public class NewOrderDto {
     private int customerId;
-    private String itemName;
+    private int itemId;
     private double quantity;
     private double amount;
 }

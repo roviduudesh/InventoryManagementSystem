@@ -1,13 +1,7 @@
 package com.app.inventory.service;
 
-import com.app.inventory.dto.IdNameDto;
-import com.app.inventory.dto.ItemDto;
-import com.app.inventory.dto.ResponseDto;
-import com.app.inventory.dto.UserDto;
-import com.app.inventory.model.Item;
-import com.app.inventory.model.Stock;
-import com.app.inventory.model.Supplier;
-import com.app.inventory.model.User;
+import com.app.inventory.dto.*;
+import com.app.inventory.model.*;
 import com.app.inventory.repository.ItemRepository;
 import com.app.inventory.repository.OrderItemRepository;
 import com.app.inventory.repository.StockRepository;
@@ -45,20 +39,36 @@ public class ItemService {
 
     public ResponseEntity<?> createNewItem(ItemDto itemDto) {
         ResponseDto responseDto = new ResponseDto();
+        int status;
+        String message;
         try {
-            Item item = new Item();
-            item.setName(itemDto.getName());
-            item.setQuantity(itemDto.getQuantity());
-            item.setPrice(itemDto.getPrice());
-            item.setWarranty(itemDto.getWarranty());
-            item.setCreatedDate(LocalDateTime.now());
-            itemRepository.save(item);
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Successfully Inserted");
+            List<Item> itemList = itemRepository.findAll();
+
+            Optional<Item> itemOptional = itemList.stream()
+                    .filter(i -> i.getName().equalsIgnoreCase(itemDto.getName().trim()))
+                    .findFirst();
+
+            if(itemOptional.isPresent()){
+                status = HttpStatus.NOT_ACCEPTABLE.value();
+                message = "Item Name Exists";
+            } else {
+                Item item = new Item();
+                item.setName(itemDto.getName());
+                item.setQuantity(itemDto.getQuantity());
+                item.setPrice(itemDto.getPrice());
+                item.setWarranty(itemDto.getWarranty());
+                item.setCreatedDate(LocalDateTime.now());
+                itemRepository.save(item);
+
+                status = HttpStatus.OK.value();
+                message = "Successfully Inserted";
+            }
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
@@ -68,14 +78,22 @@ public class ItemService {
         String message;
         try {
             Optional<Item> itemOptional = itemRepository.findById(itemId);
+            List<Item> itemList = itemRepository.findAll();
 
+            Optional<Item> itemName = itemList.stream()
+                    .filter(i -> i.getId() != itemId && i.getName().equalsIgnoreCase(itemDto.getName().trim()))
+                    .findFirst();
 
             if(itemOptional.isPresent()){
                 Item item = itemOptional.get();
+                boolean checkItem = checkItem(itemId);
 
-                if(checkItem(itemId)) {
+                if(checkItem) {
                     status = HttpStatus.METHOD_NOT_ALLOWED.value();
-                    message = "Updated, Stocks/Invoices Exists !!!";
+                    message = "Stocks/Invoices Exists !!!";
+                } else if(itemName.isPresent()){
+                    status = HttpStatus.NOT_ACCEPTABLE.value();
+                    message = "Item Name Exists";
                 } else{
                     item.setName(itemDto.getName());
                     item.setPrice(itemDto.getPrice());
@@ -101,8 +119,8 @@ public class ItemService {
 
     boolean checkItem(int itemId){
         List<Stock> stockList = stockRepository.findByItem_Id(itemId);
-        List<Item> itemList = orderItemRepository.findByOrderItemKey_ItemId(itemId);
-        return stockList.size() > 0 || itemList.size() > 0 ? true : false;
+        List<OrderItem> orderItemList = orderItemRepository.findByOrderItemKey_ItemId(itemId);
+        return stockList.size() > 0 || orderItemList.size() > 0 ? true : false;
     }
 
     public ResponseEntity<?> deleteItem(int itemId) {
@@ -112,9 +130,8 @@ public class ItemService {
         try {
             Optional<Item> itemOptional = itemRepository.findById(itemId);
             if (itemOptional.isPresent()) {
-                Item item = itemOptional.get();
-
-                if (checkItem(itemId)) {
+                boolean checkItem = checkItem(itemId);
+                if (checkItem) {
                     status = HttpStatus.METHOD_NOT_ALLOWED.value();
                     message = "Unable to Delete, Stocks/Invoices Exists !!!";
                 } else {
@@ -127,6 +144,7 @@ public class ItemService {
                 message = "Item Not Found";
             }
         } catch(Exception ex){
+            ex.printStackTrace();
             status = HttpStatus.EXPECTATION_FAILED.value();
             message = "Technical Failure";
         }
@@ -138,7 +156,7 @@ public class ItemService {
     public ResponseEntity<?> getItemIdNameList() {
         ResponseDto responseDto = new ResponseDto();
         try {
-            List<Item> itemList = itemRepository.findAllByOrderByNameAsc();
+            List<Item> itemList = itemRepository.findAllByQuantityGreaterThanOrderByNameAsc(0);
             List<IdNameDto> idNameDtoList = new ArrayList<>();
             IdNameDto idNameDto;
             for (Item item : itemList) {
@@ -151,6 +169,31 @@ public class ItemService {
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("Supplier List");
             responseDto.setData(idNameDtoList);
+        } catch (Exception ex){
+            ex.printStackTrace();
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+            responseDto.setData(null);
+        }
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> getItemIdQtyList() {
+        ResponseDto responseDto = new ResponseDto();
+        try {
+            List<Item> itemList = itemRepository.findAllByQuantityGreaterThanOrderByNameAsc(0);
+            List<IdQtyDto> idQtyDtoList = new ArrayList<>();
+            IdQtyDto idQtyDto;
+            for (Item item : itemList) {
+                idQtyDto = new IdQtyDto();
+                idQtyDto.setId(item.getId());
+                idQtyDto.setQuantity(item.getQuantity());
+
+                idQtyDtoList.add(idQtyDto);
+            }
+            responseDto.setStatus(HttpStatus.OK.value());
+            responseDto.setMessage("Supplier List");
+            responseDto.setData(idQtyDtoList);
         } catch (Exception ex){
             ex.printStackTrace();
             responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());

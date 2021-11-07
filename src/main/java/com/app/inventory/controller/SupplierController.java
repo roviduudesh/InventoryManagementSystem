@@ -23,7 +23,7 @@ public class SupplierController {
         return responseDto;
     }
 
-    @GetMapping(value = "/stock_supplier")
+    @GetMapping(value = "/supplier_id_name")
     public ResponseEntity<?> getSupForStock(){
         ResponseEntity<?> responseDto =  supplierService.getSupIdNameList();
         return responseDto;

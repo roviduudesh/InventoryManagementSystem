@@ -32,4 +32,6 @@ public class User implements Serializable {
     @Column(name = "user_contact")
     private String contact;
 
+    @Column(name = "user_level")
+    private String level;
 }

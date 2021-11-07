@@ -51,6 +51,7 @@ public class UserService {
                 user.setUserName(userDto.getUserName());
                 user.setPassword(userDto.getPassword());
                 user.setContact(userDto.getContact());
+                user.setLevel(userDto.getLevel());
                 userRepository.save(user);
                 status = HttpStatus.OK.value();
                 message = "Successfully Inserted";
@@ -106,11 +107,13 @@ public class UserService {
         ResponseDto responseDto = new ResponseDto();
         int status;
         String message;
+        User user = null;
         try {
-            Optional<User> user = userRepository.findByUserName(loginDto.getUserName());
-            if (user.isPresent()) {
+            Optional<User> userOptional = userRepository.findByUserName(loginDto.getUserName());
+            if (userOptional.isPresent()) {
                 status = HttpStatus.OK.value();
                 message = "Success";
+                user = userOptional.get();
             } else {
                 status = HttpStatus.NO_CONTENT.value();
                 message = "User Not Found";
@@ -121,6 +124,7 @@ public class UserService {
         }
         responseDto.setStatus(status);
         responseDto.setMessage(message);
+        responseDto.setData(user);
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 }

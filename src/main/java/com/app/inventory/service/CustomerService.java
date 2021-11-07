@@ -1,9 +1,6 @@
 package com.app.inventory.service;
 
-import com.app.inventory.dto.CustomerDto;
-import com.app.inventory.dto.ResponseDto;
-import com.app.inventory.dto.SupplierDto;
-import com.app.inventory.dto.ValidateDto;
+import com.app.inventory.dto.*;
 import com.app.inventory.model.Customer;
 import com.app.inventory.model.CustomerContact;
 import com.app.inventory.model.Supplier;
@@ -223,6 +220,31 @@ public class CustomerService {
         }
         responseDto.setStatus(status);
         responseDto.setMessage(message);
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> getCusIdNameList() {
+        ResponseDto responseDto = new ResponseDto();
+        try {
+            List<Customer> customerList = customerRepository.findAllByOrderByFirstNameAsc();
+            List<IdNameDto> idNameDtoList = new ArrayList<>();
+            IdNameDto idNameDto;
+            for (Customer customer : customerList) {
+                idNameDto = new IdNameDto();
+                idNameDto.setId(customer.getId());
+                idNameDto.setName(customer.getFirstName() + " " + customer.getLastName());
+
+                idNameDtoList.add(idNameDto);
+            }
+            responseDto.setStatus(HttpStatus.OK.value());
+            responseDto.setMessage("Customer List");
+            responseDto.setData(idNameDtoList);
+        } catch (Exception ex){
+            ex.printStackTrace();
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+            responseDto.setData(null);
+        }
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

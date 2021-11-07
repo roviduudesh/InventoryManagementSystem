@@ -22,9 +22,15 @@ public class ItemController {
         return itemService.getItemList();
     }
 
-    @GetMapping(value = "/stock_item")
-    public ResponseEntity<?> getSupForStock(){
+    @GetMapping(value = "/item_id_name")
+    public ResponseEntity<?> getItemIdName(){
         ResponseEntity<?> responseDto =  itemService.getItemIdNameList();
+        return responseDto;
+    }
+
+    @GetMapping(value = "/item_id_qty")
+    public ResponseEntity<?> getItemIdQty(){
+        ResponseEntity<?> responseDto =  itemService.getItemIdQtyList();
         return responseDto;
     }
 

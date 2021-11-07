@@ -9,5 +9,5 @@ import java.util.List;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, OrderItemKey> {
 
-    List<Item> findByOrderItemKey_ItemId(int itemId);
+    List<OrderItem> findByOrderItemKey_ItemId(int itemId);
 }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @Data
 @RestController
 @RequestMapping(path = "api/v1/user")
@@ -24,6 +25,11 @@ public class UserController {
         return userService.getUserList();
     }
 
+    @GetMapping(value = "/profile")
+    public ResponseEntity<?> getUserProfile(@RequestParam("userId") int userId){
+        return userService.getUserProfile(userId);
+    }
+
     @PostMapping
     public ResponseEntity<?> addNewUser(@RequestBody UserDto userDto){
         ResponseEntity<?> responseDto = userService.createNewUser(userDto);
@@ -32,10 +38,8 @@ public class UserController {
 
     @PutMapping(path = "{userId}")
     public ResponseEntity<?> updateUser(@PathVariable("userId") int userId,
-                                            @RequestParam(required = false) String firstName,
-                                            @RequestParam(required = false) String lastName,
-                                            @RequestParam(required = false) String contact){
-        ResponseEntity<?> responseEntity = userService.updateUser(userId, firstName, lastName, contact);
+                                        @RequestBody UserDto userDto) {
+        ResponseEntity<?> responseEntity = userService.updateUser(userDto);
         return responseEntity;
     }
 
@@ -43,5 +47,11 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody LoginDto loginDto){
         ResponseEntity<?> responseDto = userService.login(loginDto);
         return responseDto;
+    }
+
+    @DeleteMapping(path = "{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable("userId") int userId){
+        ResponseEntity<?> responseEntity = userService.deleteUser(userId);
+        return responseEntity;
     }
 }

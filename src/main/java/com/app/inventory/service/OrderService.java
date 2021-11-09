@@ -89,6 +89,7 @@ public class OrderService {
     public ResponseEntity<?> createNewOrder(List<NewOrderDto> orderDtoList) {
         ResponseDto responseDto = new ResponseDto();
         int customerId;
+        int userId;
         int status;
         String message;
         try {
@@ -97,9 +98,10 @@ public class OrderService {
             order.setId(orderId);
             order.setOrderDate(LocalDateTime.now());
             customerId = orderDtoList.get(0).getCustomerId();
+            userId = orderDtoList.get(0).getUserId();
 
             Optional<Customer> customerOptional = customerRepository.findById(customerId);
-            Optional<User> userOptional = userRepository.findById(1);
+            Optional<User> userOptional = userRepository.findById(userId);
 
             if(!customerOptional.isPresent()){
                 status = HttpStatus.NO_CONTENT.value();

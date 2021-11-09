@@ -3,8 +3,12 @@ package com.app.inventory.service;
 import com.app.inventory.dto.LoginDto;
 import com.app.inventory.dto.ResponseDto;
 import com.app.inventory.dto.UserDto;
+import com.app.inventory.model.Order;
+import com.app.inventory.model.Stock;
 import com.app.inventory.model.Supplier;
 import com.app.inventory.model.User;
+import com.app.inventory.repository.OrderRepository;
+import com.app.inventory.repository.StockRepository;
 import com.app.inventory.repository.UserRepository;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
@@ -12,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,11 +25,13 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final StockRepository stockRepository;
+    private final OrderRepository orderRepository;
 
     public ResponseEntity<?> getUserList(){
         ResponseDto responseDto = new ResponseDto();
         try {
-            List<User> userList = userRepository.findAll();
+            List<User> userList = userRepository.findAllByOrderByFirstNameAsc();
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("User List");
             responseDto.setData(userList);
@@ -41,8 +48,12 @@ public class UserService {
         int status;
         String message;
         try {
-            if(checkUserName(userDto.getUserName())){
-                status = HttpStatus.MULTI_STATUS.value();
+            List<User> userList = userRepository.findAll();
+            Optional<User> userOptional = userList.stream()
+                    .filter(u -> u.getUserName().equalsIgnoreCase(userDto.getUserName().trim()))
+                    .findFirst();
+            if (userOptional.isPresent()) {
+                status = HttpStatus.NOT_ACCEPTABLE.value();
                 message = "Username Exists";
             } else {
                 User user = new User();
@@ -56,39 +67,42 @@ public class UserService {
                 status = HttpStatus.OK.value();
                 message = "Successfully Inserted";
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
-    boolean checkUserName(String userName){
-        Optional<User> userOptional = userRepository.findByUserName(userName);
-        return userOptional.isPresent() ? true : false;
-    }
-
-    public ResponseEntity<?> updateUser(int userId,
-                                        String firstName,
-                                        String lastName,
-                                        String contact) {
+    public ResponseEntity<?> updateUser(UserDto userDto) {
         ResponseDto responseDto = new ResponseDto();
         int status;
         String message;
         try {
-            Optional<User> userOptional = userRepository.findById(userId);
-            if(userOptional.isPresent()){
+            Optional<User> userOptional = userRepository.findById(userDto.getId());
+            if(userOptional.isPresent()) {
                 User user = userOptional.get();
+                List<User> userList = userRepository.findAll();
+                Optional<User> userName = userList.stream()
+                        .filter(u -> u.getId() != userDto.getId() && u.getUserName().equalsIgnoreCase(userDto.getUserName().trim()))
+                        .findFirst();
 
-                user.setFirstName(firstName);
-                user.setLastName(lastName);
-                user.setContact(contact);
-                userRepository.save(user);
-                status = HttpStatus.OK.value();
-                message = "Successfully Updated";
+                if (userName.isPresent()) {
+                    status = HttpStatus.NOT_ACCEPTABLE.value();
+                    message = "Username Exists";
+                } else {
+                    user.setFirstName(userDto.getFirstName());
+                    user.setLastName(userDto.getLastName());
+                    user.setContact(userDto.getContact());
+                    user.setUserName(userDto.getUserName());
+                    user.setPassword(userDto.getPassword());
+                    user.setLevel(userDto.getLevel());
+                    userRepository.save(user);
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Updated";
+                }
             } else{
                 status = HttpStatus.NO_CONTENT.value();
                 message = "User Not Found";
@@ -96,10 +110,11 @@ public class UserService {
             responseDto.setStatus(status);
             responseDto.setMessage(message);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = "Technical Failure";
         }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
         return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
@@ -109,7 +124,7 @@ public class UserService {
         String message;
         User user = null;
         try {
-            Optional<User> userOptional = userRepository.findByUserName(loginDto.getUserName());
+            Optional<User> userOptional = userRepository.findByUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
             if (userOptional.isPresent()) {
                 status = HttpStatus.OK.value();
                 message = "Success";
@@ -126,5 +141,53 @@ public class UserService {
         responseDto.setMessage(message);
         responseDto.setData(user);
         return new ResponseEntity(responseDto, HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> getUserProfile(int userId) {
+        ResponseDto responseDto = new ResponseDto();
+        List<User> userList = new ArrayList<>();
+        try {
+            Optional<User> optionalUser = userRepository.findById(userId);
+            userList.add(optionalUser.get());
+            responseDto.setStatus(HttpStatus.OK.value());
+            responseDto.setMessage("User List");
+            responseDto.setData(userList);
+        } catch (Exception ex){
+            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
+            responseDto.setMessage("Technical Failure");
+            responseDto.setData(null);
+        }
+        return new ResponseEntity(responseDto, HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> deleteUser(int userId) {
+        ResponseDto responseDto = new ResponseDto();
+        int status;
+        String message;
+        try {
+            Optional<User> userOptional = userRepository.findById(userId);
+            if (userOptional.isPresent()) {
+                List<Stock> stockList = stockRepository.findAllByUser_Id(userId);
+                List<Order> orderList = orderRepository.findAllByUser_Id(userId);
+                if(stockList.size() > 0 || orderList.size() > 0){
+                    status = HttpStatus.NOT_ACCEPTABLE.value();
+                    message = "Stock / Order Exists";
+                } else {
+                    userRepository.delete(userOptional.get());
+                    status = HttpStatus.OK.value();
+                    message = "Successfully Deleted";
+                }
+            } else{
+                status = HttpStatus.NO_CONTENT.value();
+                message = "Supplier not Found";
+            }
+        } catch (Exception ex){
+            ex.printStackTrace();
+            status = HttpStatus.EXPECTATION_FAILED.value();
+            message = ex.getMessage();
+        }
+        responseDto.setStatus(status);
+        responseDto.setMessage(message);
+        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

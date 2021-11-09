@@ -3,7 +3,8 @@ package com.app.inventory.dto;
 import lombok.Data;
 
 @Data
-public class IdQtyDto {
+public class IdQtyDtoPrice {
     private int id;
     private double quantity;
+    private double price;
 }

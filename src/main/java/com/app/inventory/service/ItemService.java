@@ -178,17 +178,17 @@ public class ItemService {
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
-    public ResponseEntity<?> getItemIdQtyList() {
+    public ResponseEntity<?> getItemIdQtyPriceList() {
         ResponseDto responseDto = new ResponseDto();
         try {
             List<Item> itemList = itemRepository.findAllByQuantityGreaterThanOrderByNameAsc(0);
-            List<IdQtyDto> idQtyDtoList = new ArrayList<>();
-            IdQtyDto idQtyDto;
+            List<IdQtyDtoPrice> idQtyDtoList = new ArrayList<>();
+            IdQtyDtoPrice idQtyDto;
             for (Item item : itemList) {
-                idQtyDto = new IdQtyDto();
+                idQtyDto = new IdQtyDtoPrice();
                 idQtyDto.setId(item.getId());
                 idQtyDto.setQuantity(item.getQuantity());
-
+                idQtyDto.setPrice(item.getPrice());
                 idQtyDtoList.add(idQtyDto);
             }
             responseDto.setStatus(HttpStatus.OK.value());

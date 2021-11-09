@@ -10,4 +10,5 @@ public class NewOrderDto {
     private int itemId;
     private double quantity;
     private double amount;
+    private int userId;
 }

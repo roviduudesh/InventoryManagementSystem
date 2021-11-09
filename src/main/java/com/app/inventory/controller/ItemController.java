@@ -30,7 +30,7 @@ public class ItemController {
 
     @GetMapping(value = "/item_id_qty")
     public ResponseEntity<?> getItemIdQty(){
-        ResponseEntity<?> responseDto =  itemService.getItemIdQtyList();
+        ResponseEntity<?> responseDto =  itemService.getItemIdQtyPriceList();
         return responseDto;
     }
 

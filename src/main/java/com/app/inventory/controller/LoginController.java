@@ -16,7 +16,7 @@ public class LoginController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<?> addNewItem(@RequestBody LoginDto loginDto){
+    public ResponseEntity<?> login(@RequestBody LoginDto loginDto){
         ResponseEntity<?> responseEntity = userService.login(loginDto);
         return responseEntity;
     }

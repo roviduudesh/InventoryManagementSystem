@@ -13,12 +13,14 @@ import com.app.inventory.repository.UserRepository;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Data
 @Service
@@ -32,6 +34,7 @@ public class UserService {
         ResponseDto responseDto = new ResponseDto();
         try {
             List<User> userList = userRepository.findAllByOrderByFirstNameAsc();
+            userList.forEach(u -> u.setPassword("********"));
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("User List");
             responseDto.setData(userList);
@@ -45,6 +48,7 @@ public class UserService {
 
     public ResponseEntity<?> createNewUser(UserDto userDto) {
         ResponseDto responseDto = new ResponseDto();
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         int status;
         String message;
         try {
@@ -60,7 +64,7 @@ public class UserService {
                 user.setFirstName(userDto.getFirstName());
                 user.setLastName(userDto.getLastName());
                 user.setUserName(userDto.getUserName());
-                user.setPassword(userDto.getPassword());
+                user.setPassword(bCryptPasswordEncoder.encode(userDto.getPassword()));
                 user.setContact(userDto.getContact());
                 user.setLevel(userDto.getLevel());
                 userRepository.save(user);
@@ -78,6 +82,7 @@ public class UserService {
 
     public ResponseEntity<?> updateUser(UserDto userDto) {
         ResponseDto responseDto = new ResponseDto();
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         int status;
         String message;
         try {
@@ -97,7 +102,7 @@ public class UserService {
                     user.setLastName(userDto.getLastName());
                     user.setContact(userDto.getContact());
                     user.setUserName(userDto.getUserName());
-                    user.setPassword(userDto.getPassword());
+                    user.setPassword(bCryptPasswordEncoder.encode(userDto.getPassword()));
                     user.setLevel(userDto.getLevel());
                     userRepository.save(user);
                     status = HttpStatus.OK.value();
@@ -120,15 +125,24 @@ public class UserService {
 
     public ResponseEntity<?> login(LoginDto loginDto) {
         ResponseDto responseDto = new ResponseDto();
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
         int status;
         String message;
         User user = null;
         try {
-            Optional<User> userOptional = userRepository.findByUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
+            Optional<User> userOptional = userRepository.findByUserName(loginDto.getUserName());
             if (userOptional.isPresent()) {
-                status = HttpStatus.OK.value();
-                message = "Success";
-                user = userOptional.get();
+                boolean match = bCryptPasswordEncoder.matches(loginDto.getPassword(), userOptional.get().getPassword());
+
+                if (match){
+                    status = HttpStatus.OK.value();
+                    message = "Success";
+                    user = userOptional.get();
+                } else{
+                    status = HttpStatus.NO_CONTENT.value();
+                    message = "Invalid Password";
+                }
             } else {
                 status = HttpStatus.NO_CONTENT.value();
                 message = "User Not Found";
@@ -147,8 +161,10 @@ public class UserService {
         ResponseDto responseDto = new ResponseDto();
         List<User> userList = new ArrayList<>();
         try {
-            Optional<User> optionalUser = userRepository.findById(userId);
-            userList.add(optionalUser.get());
+            Optional<User> userOptional = userRepository.findById(userId);
+            User user = userOptional.get();
+            user.setPassword("********");
+            userList.add(user);
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("User List");
             responseDto.setData(userList);

@@ -12,14 +12,13 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 @Data
 @RestController
-@RequestMapping(path = "api/v1/supplier")
+@RequestMapping(path = "/api/v1/supplier")
 public class SupplierController {
 
     private final SupplierService supplierService;
 
     @GetMapping(value = "/all")
     public ResponseEntity<?> getSupplierList(){
-        System.out.println("AAAA");
         ResponseEntity<?> responseDto =  supplierService.getSupplierList();
         return responseDto;
     }

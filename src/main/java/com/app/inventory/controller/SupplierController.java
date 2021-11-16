@@ -19,6 +19,7 @@ public class SupplierController {
 
     @GetMapping(value = "/all")
     public ResponseEntity<?> getSupplierList(){
+        System.out.println("AAAA");
         ResponseEntity<?> responseDto =  supplierService.getSupplierList();
         return responseDto;
     }

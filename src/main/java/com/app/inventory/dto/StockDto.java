@@ -14,6 +14,7 @@ public class StockDto {
     private int id;
     private int itemId;
     private int supplierId;
+    private int userId;
     private double quantity;
     private String supplierName;
     private String itemName;

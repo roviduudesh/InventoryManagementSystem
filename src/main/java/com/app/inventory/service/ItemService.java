@@ -15,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.app.inventory.service.Common.EXCEPTION;
+import static com.app.inventory.service.Common.SUCCESS;
+
 @Data
 @Service
 public class ItemService {
@@ -24,23 +27,15 @@ public class ItemService {
     private final OrderItemRepository orderItemRepository;
 
     public ResponseEntity<?> getItemList(){
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<Item> itemList = itemRepository.findAllByOrderByNameAsc();
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Item list");
-            responseDto.setData(itemList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, itemList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewItem(ItemDto itemDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             List<Item> itemList = itemRepository.findAll();
 
@@ -49,8 +44,7 @@ public class ItemService {
                     .findFirst();
 
             if(itemOptional.isPresent()){
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = "Item Name Exists";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Item Name Exists", null), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 Item item = new Item();
                 item.setName(itemDto.getName());
@@ -60,22 +54,14 @@ public class ItemService {
                 item.setCreatedDate(LocalDateTime.now());
                 itemRepository.save(item);
 
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
         } catch (Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> updateItem(int itemId, ItemDto itemDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<Item> itemOptional = itemRepository.findById(itemId);
             List<Item> itemList = itemRepository.findAll();
@@ -89,11 +75,9 @@ public class ItemService {
                 boolean checkItem = checkItem(itemId);
 
                 if(checkItem) {
-                    status = HttpStatus.METHOD_NOT_ALLOWED.value();
-                    message = "Stocks/Invoices Exists !!!";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Stocks/Invoices Exists !!!", null), HttpStatus.NOT_ACCEPTABLE);
                 } else if(itemName.isPresent()){
-                    status = HttpStatus.NOT_ACCEPTABLE.value();
-                    message = "Item Name Exists";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Item Name Exists", null), HttpStatus.NOT_ACCEPTABLE);
                 } else{
                     item.setName(itemDto.getName());
                     item.setPrice(itemDto.getPrice());
@@ -101,20 +85,14 @@ public class ItemService {
                     item.setWarranty(itemDto.getWarranty());
 
                     itemRepository.save(item);
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Updated";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 }
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Item Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Item Not Found", null), HttpStatus.NO_CONTENT);
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     boolean checkItem(int itemId){
@@ -124,37 +102,26 @@ public class ItemService {
     }
 
     public ResponseEntity<?> deleteItem(int itemId) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<Item> itemOptional = itemRepository.findById(itemId);
             if (itemOptional.isPresent()) {
                 boolean checkItem = checkItem(itemId);
                 if (checkItem) {
-                    status = HttpStatus.METHOD_NOT_ALLOWED.value();
-                    message = "Unable to Delete, Stocks/Invoices Exists !!!";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Unable to Delete, Stocks/Invoices Exists !!!", null), HttpStatus.NOT_ACCEPTABLE);
                 } else {
                     itemRepository.deleteById(itemId);
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Deleted";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 }
             } else {
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Item Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Item Not Found", null), HttpStatus.NO_CONTENT);
             }
         } catch(Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), SUCCESS, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getItemIdNameList() {
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<Item> itemList = itemRepository.findAllByQuantityGreaterThanOrderByNameAsc(0);
             List<IdNameDto> idNameDtoList = new ArrayList<>();
@@ -166,20 +133,14 @@ public class ItemService {
 
                 idNameDtoList.add(idNameDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Supplier List");
-            responseDto.setData(idNameDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, idNameDtoList), HttpStatus.OK);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getItemIdQtyPriceList() {
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<Item> itemList = itemRepository.findAllByQuantityGreaterThanOrderByNameAsc(0);
             List<IdQtyDtoPrice> idQtyDtoList = new ArrayList<>();
@@ -191,15 +152,10 @@ public class ItemService {
                 idQtyDto.setPrice(item.getPrice());
                 idQtyDtoList.add(idQtyDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Supplier List");
-            responseDto.setData(idQtyDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, idQtyDtoList), HttpStatus.OK);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), EXCEPTION, null), HttpStatus.OK);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

@@ -12,9 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static com.app.inventory.service.Common.EXCEPTION;
+import static com.app.inventory.service.Common.SUCCESS;
 
 @Data
 @Service
@@ -26,7 +30,6 @@ public class StockService {
     private final UserRepository userRepository;
 
     public ResponseEntity<?> getStockList(){
-        ResponseDto responseDto = new ResponseDto();
         StockDto viewStockDto;
         List<StockDto> viewStockDtoList = new ArrayList<>();
         try {
@@ -42,87 +45,61 @@ public class StockService {
                 viewStockDto.setItemName(stock.getItem().getName());
                 viewStockDtoList.add(viewStockDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Stock List");
-            responseDto.setData(viewStockDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, viewStockDtoList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewStock(StockDto stockDto) {
-        ResponseDto responseDto = new ResponseDto();
         Optional<Supplier> supplierOptional = supplierRepository.findById(stockDto.getSupplierId());
         Optional<Item> itemOptional = itemRepository.findById(stockDto.getItemId());
-//        Optional<User> userOptional = userRepository.findById(createStockDto.getUserId());
-        int status;
-        String message;
+        Optional<User> userOptional = userRepository.findById(stockDto.getUserId());
+
         try {
             if(!supplierOptional.isPresent()){
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Supplier Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Supplier Not Found", null), HttpStatus.NO_CONTENT);
             } else if(!itemOptional.isPresent()){
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Item Not Found";
-            } /*else if(!userOptional.isPresent()){
-                status = HttpStatus.NO_CONTENT.value();
-                message = "User Not Found";
-            } */else {
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Item Not Found", null), HttpStatus.NO_CONTENT);
+            } else if(!userOptional.isPresent()){
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "User Not Found", null), HttpStatus.NO_CONTENT);
+            } else {
                 Stock stock = new Stock();
-//                stock.setStockDate(stockDto.getStockDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+                stock.setStockDate(stockDto.getStockDate().atZone(ZoneId.systemDefault()).toLocalDateTime());
                 stock.setStockDate(stockDto.getStockDate());
                 stock.setQuantity(stockDto.getQuantity());
+                stock.setUser(userOptional.get());
 
                 Item item = itemOptional.get();
                 stock.setItem(item);
-
                 item.setQuantity(item.getQuantity() + stockDto.getQuantity());
                 itemRepository.save(item);
 
                 stock.setSupplier(supplierOptional.get());
                 stockRepository.save(stock);
 
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> updateStock(int stockId, StockDto stockDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<Stock> stockOptional = stockRepository.findById(stockId);
             if(stockOptional.isPresent()){
                 Stock stock = stockOptional.get();
-
                 stock.setStockDate(stockDto.getStockDate());
 
                 stockRepository.save(stock);
-                status = HttpStatus.OK.value();
-                message = "Successfully Updated";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Stock Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Stock not found", null), HttpStatus.NO_CONTENT);
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 }

@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.app.inventory.service.Common.EXCEPTION;
+import static com.app.inventory.service.Common.SUCCESS;
+
 @Data
 @Service
 public class UserService {
@@ -31,34 +34,24 @@ public class UserService {
     private final OrderRepository orderRepository;
 
     public ResponseEntity<?> getUserList(){
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<User> userList = userRepository.findAllByOrderByFirstNameAsc();
             userList.forEach(u -> u.setPassword("********"));
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("User List");
-            responseDto.setData(userList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, userList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewUser(UserDto userDto) {
-        ResponseDto responseDto = new ResponseDto();
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        int status;
-        String message;
         try {
             List<User> userList = userRepository.findAll();
             Optional<User> userOptional = userList.stream()
                     .filter(u -> u.getUserName().equalsIgnoreCase(userDto.getUserName().trim()))
                     .findFirst();
             if (userOptional.isPresent()) {
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = "Username Exists";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Username Exists", null), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 User user = new User();
                 user.setFirstName(userDto.getFirstName());
@@ -68,23 +61,15 @@ public class UserService {
                 user.setContact(userDto.getContact());
                 user.setLevel(userDto.getLevel());
                 userRepository.save(user);
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
         } catch (Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> updateUser(UserDto userDto) {
-        ResponseDto responseDto = new ResponseDto();
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        int status;
-        String message;
         try {
             Optional<User> userOptional = userRepository.findById(userDto.getId());
             if(userOptional.isPresent()) {
@@ -95,8 +80,7 @@ public class UserService {
                         .findFirst();
 
                 if (userName.isPresent()) {
-                    status = HttpStatus.NOT_ACCEPTABLE.value();
-                    message = "Username Exists";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Username Exists", null), HttpStatus.NOT_ACCEPTABLE);
                 } else {
                     user.setFirstName(userDto.getFirstName());
                     user.setLastName(userDto.getLastName());
@@ -105,105 +89,69 @@ public class UserService {
                     user.setPassword(bCryptPasswordEncoder.encode(userDto.getPassword()));
                     user.setLevel(userDto.getLevel());
                     userRepository.save(user);
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Updated";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 }
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "User Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "User Not Found", null), HttpStatus.NO_CONTENT);
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> login(LoginDto loginDto) {
-        ResponseDto responseDto = new ResponseDto();
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-        int status;
-        String message;
-        User user = null;
         try {
             Optional<User> userOptional = userRepository.findByUserName(loginDto.getUserName());
             if (userOptional.isPresent()) {
                 boolean match = bCryptPasswordEncoder.matches(loginDto.getPassword(), userOptional.get().getPassword());
 
                 if (match){
-                    status = HttpStatus.OK.value();
-                    message = "Success";
-                    user = userOptional.get();
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, userOptional.get()), HttpStatus.OK);
                 } else{
-                    status = HttpStatus.NO_CONTENT.value();
-                    message = "Invalid Password";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Invalid Password", null), HttpStatus.NO_CONTENT);
                 }
             } else {
-                status = HttpStatus.NO_CONTENT.value();
-                message = "User Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "User Not Found", null), HttpStatus.NO_CONTENT);
             }
         } catch (Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.OK);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        responseDto.setData(user);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getUserProfile(int userId) {
-        ResponseDto responseDto = new ResponseDto();
         List<User> userList = new ArrayList<>();
         try {
             Optional<User> userOptional = userRepository.findById(userId);
             User user = userOptional.get();
             user.setPassword("********");
             userList.add(user);
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("User List");
-            responseDto.setData(userList);
+
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, userList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.OK);
         }
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> deleteUser(int userId) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<User> userOptional = userRepository.findById(userId);
             if (userOptional.isPresent()) {
                 List<Stock> stockList = stockRepository.findAllByUser_Id(userId);
                 List<Order> orderList = orderRepository.findAllByUser_Id(userId);
                 if(stockList.size() > 0 || orderList.size() > 0){
-                    status = HttpStatus.NOT_ACCEPTABLE.value();
-                    message = "Stock / Order Exists";
+                   return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Stock / Order Exists", null), HttpStatus.NOT_ACCEPTABLE);
                 } else {
                     userRepository.delete(userOptional.get());
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Deleted";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 }
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Supplier not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Supplier not Found", null), HttpStatus.NO_CONTENT);
             }
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = ex.getMessage();
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

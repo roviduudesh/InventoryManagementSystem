@@ -19,6 +19,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.app.inventory.service.Common.EXCEPTION;
+import static com.app.inventory.service.Common.SUCCESS;
+
 @Data
 @Service
 public class OrderService {
@@ -30,7 +33,6 @@ public class OrderService {
     private final ItemRepository itemRepository;
 
     public ResponseEntity<?> getOrderList(){
-        ResponseDto responseDto = new ResponseDto();
         ViewOrderDto viewOrderDto = null;
         List<ViewOrderDto> viewOrderDtoList = new ArrayList<>();
         List<OrderItemDto> orderItemDtoList = null;
@@ -60,38 +62,25 @@ public class OrderService {
                 viewOrderDto.setOrderItemList(orderItemDtoList);
                 viewOrderDtoList.add(viewOrderDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Order List");
-            responseDto.setData(viewOrderDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, viewOrderDtoList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getOrderItemList(){
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<OrderItem> orderItemList = orderItemRepository.findAll();
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Order-Item List");
-            responseDto.setData(orderItemList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, orderItemList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewOrder(List<NewOrderDto> orderDtoList) {
         ResponseDto responseDto = new ResponseDto();
         int customerId;
         int userId;
-        int status;
-        String message;
         try {
             Order order = new Order();
             String orderId = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
@@ -104,11 +93,9 @@ public class OrderService {
             Optional<User> userOptional = userRepository.findById(userId);
 
             if(!customerOptional.isPresent()){
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Customer Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Customer Not Found", null), HttpStatus.NO_CONTENT);
             } else if (!userOptional.isPresent()){
-                status = HttpStatus.NO_CONTENT.value();
-                message = "User Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "User Not Found", null), HttpStatus.NO_CONTENT);
             } else {
                 order.setCustomer(customerOptional.get());
                 order.setUser(userOptional.get());
@@ -137,19 +124,11 @@ public class OrderService {
                     orderItem.setAmount(newOrderDto.getAmount());
                     orderItemRepository.save(orderItem);
                 }
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
-            responseDto.setStatus(status);
-            responseDto.setMessage(message);
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 }

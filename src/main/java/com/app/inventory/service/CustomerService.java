@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import static com.app.inventory.service.Common.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ public class CustomerService {
     private final CustomerContactRepository customerContactRepository;
 
     public ResponseEntity<?> getCustomerList(){
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<Customer> customerList = customerRepository.findAllByOrderByFirstNameAsc();
             List<CustomerDto> customerDtoList = new ArrayList<>();
@@ -54,26 +54,17 @@ public class CustomerService {
                 }
                 customerDtoList.add(customerDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Customer List");
-            responseDto.setData(customerDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, customerDtoList), HttpStatus.OK);
         } catch (Exception ex){
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> createNewCustomer(CustomerDto customerDto) {
-        int status;
-        String message;
-        ResponseDto responseDto = new ResponseDto();
         try {
             ValidateDto validateDto = validateCustomer(customerDto);
             if(!validateDto.isValid()){
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = validateDto.getMessage();
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), validateDto.getMessage(), null), HttpStatus.OK);
             } else {
                 Customer customer = new Customer();
 
@@ -90,19 +81,14 @@ public class CustomerService {
                 if(customerDto.getContact() != null) {
                     setCustomerContact(customer.getId(), customerDto.getContact(), "insert");
                 }
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
         } catch(Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
-    ValidateDto validateCustomer(CustomerDto customerDto) throws Exception{
+    ValidateDto validateCustomer(CustomerDto customerDto){
         ValidateDto validateDto = new ValidateDto();
         Optional<Customer> customerOptional;
         Optional<String> invalidContact = Optional.empty();
@@ -130,8 +116,7 @@ public class CustomerService {
         return validateDto;
     }
 
-    void setCustomerContact(int customerId, String contact, String process) throws Exception{
-        ValidateDto validateDto = new ValidateDto();
+    void setCustomerContact(int customerId, String contact, String process){
         List<CustomerContact> customerContactList = new ArrayList<>();
         CustomerContact customerContact;
         CustomerContactKey customerContactKey;
@@ -153,15 +138,11 @@ public class CustomerService {
     }
 
     public ResponseEntity<?> updateCustomer(int customerId, CustomerDto customerDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             ValidateDto validateDto = validateCustomer(customerDto);
 
             if(!validateDto.isValid()){
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = validateDto.getMessage();
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), validateDto.getMessage(), null), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 Optional<Customer> customerOptional = customerRepository.findById(customerId);
                 if (customerOptional.isPresent()) {
@@ -177,50 +158,34 @@ public class CustomerService {
                     if(customerDto.getContact() != null) {
                         setCustomerContact(customerId, customerDto.getContact(), "update");
                     }
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Updated";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 } else {
-                    status = HttpStatus.NO_CONTENT.value();
-                    message = "Customer Not Found";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Customer Not Found", null), HttpStatus.NO_CONTENT);
                 }
             }
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), SUCCESS, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> deleteCustomer(int customerId) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<Customer> customerOptional = customerRepository.findById(customerId);
             if (customerOptional.isPresent()) {
                 if(customerOptional.get().getOrderList().size() > 0) {
-                    status = HttpStatus.NO_CONTENT.value();
-                    message = "Unable to Delete, Customer has Orders !!!";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Unable to Delete, Customer has Orders !!!", null), HttpStatus.NO_CONTENT);
                 } else {
                     customerRepository.deleteCustomer(customerId);
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Deleted";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 }
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Customer Not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Customer Not Found", null), HttpStatus.NO_CONTENT);
             }
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getCusIdNameList() {
@@ -239,12 +204,10 @@ public class CustomerService {
             responseDto.setStatus(HttpStatus.OK.value());
             responseDto.setMessage("Customer List");
             responseDto.setData(idNameDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), EXCEPTION, idNameDtoList), HttpStatus.OK);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }

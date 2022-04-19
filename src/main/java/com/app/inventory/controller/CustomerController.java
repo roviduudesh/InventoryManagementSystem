@@ -4,18 +4,19 @@ import com.app.inventory.dto.CustomerDto;
 import com.app.inventory.model.Customer;
 import com.app.inventory.service.CustomerService;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @CrossOrigin(origins = "*")
-@Data
 @RestController
 @RequestMapping(path = "/api/v1/customer")
 public class CustomerController {
 
-    private final CustomerService customerService;
+    @Autowired
+    private CustomerService customerService;
 
     @GetMapping(value = "/all")
     public ResponseEntity<?> getCustomerList(){

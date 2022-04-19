@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.app.inventory.service.Common.*;
+
 @Service
 @Data
 @Transactional
@@ -33,7 +35,6 @@ public class SupplierService {
     private final StockRepository stockRepository;
 
     public ResponseEntity<?> getSupplierList(){
-        ResponseDto responseDto = new ResponseDto();
         try {
             List<Supplier> supplierList = supplierRepository.findAllByOrderByNameAsc();
             List<SupplierDto> supplierDtoList = new ArrayList<>();
@@ -56,19 +57,14 @@ public class SupplierService {
                 }
                 supplierDtoList.add(supplierDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Supplier List");
-            responseDto.setData(supplierDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, supplierDtoList), HttpStatus.OK);
         } catch (Exception ex){
             ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
-    ValidateDto validateSupplier(SupplierDto supplierDto) throws Exception{
+    ValidateDto validateSupplier(SupplierDto supplierDto){
         ValidateDto validateDto = new ValidateDto();
         Optional<Supplier> supplierOptional;
         Optional<String> invalidContact = Optional.empty();
@@ -106,15 +102,11 @@ public class SupplierService {
     }
 
     public ResponseEntity<?> createNewSupplier(SupplierDto supplierDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             ValidateDto validateDto = validateSupplier(supplierDto);
 
             if(!validateDto.isValid()){
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = validateDto.getMessage();
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), validateDto.getMessage(), null), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 Supplier supplier = new Supplier();
                 supplier.setName(supplierDto.getSupName());
@@ -129,21 +121,15 @@ public class SupplierService {
                 if(supplierDto.getContact() != null) {
                     setSupplierContact(supplier.getId(), supplierDto.getContact(), "insert");
                 }
-                status = HttpStatus.OK.value();
-                message = "Successfully Inserted";
-
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
             }
         } catch (Exception ex){
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = "Technical Failure";
+            ex.printStackTrace();
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity(responseDto, HttpStatus.OK);
     }
 
-    void setSupplierContact(int supplierId, String contact, String process) throws Exception{
-        ValidateDto validateDto = new ValidateDto();
+    void setSupplierContact(int supplierId, String contact, String process){
         List<SupplierContact> supplierContactList = new ArrayList<>();
         SupplierContact supplierContact;
         SupplierContactKey supplierContactKey;
@@ -165,15 +151,11 @@ public class SupplierService {
     }
 
     public ResponseEntity<?> updateSupplier(int supplierId, SupplierDto supplierDto) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             ValidateDto validateDto = validateSupplier(supplierDto);
 
             if(!validateDto.isValid()){
-                status = HttpStatus.NOT_ACCEPTABLE.value();
-                message = validateDto.getMessage();
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), validateDto.getMessage(), null), HttpStatus.NOT_ACCEPTABLE);
             } else {
                 Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
                 if (supplierOptional.isPresent()) {
@@ -188,51 +170,35 @@ public class SupplierService {
                     if(supplierDto.getContact() != null) {
                         setSupplierContact(supplierId, supplierDto.getContact(), "update");
                     }
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Updated";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 } else {
-                    status = HttpStatus.NO_CONTENT.value();
-                    message = "Supplier Not Found";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Supplier Not Found", null), HttpStatus.NO_CONTENT);
                 }
             }
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = ex.getMessage();
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> deleteSupplier(int supplierId) {
-        ResponseDto responseDto = new ResponseDto();
-        int status;
-        String message;
         try {
             Optional<Supplier> supplierOptional = supplierRepository.findById(supplierId);
             if (supplierOptional.isPresent()) {
                 List<Stock> optionalStockList = stockRepository.findAllBySupplier(supplierOptional.get());
                 if (optionalStockList.isEmpty()) {
                     supplierRepository.deleteSupplier(supplierId);
-                    status = HttpStatus.OK.value();
-                    message = "Successfully Deleted";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, null), HttpStatus.OK);
                 } else {
-                    status = HttpStatus.NOT_ACCEPTABLE.value();
-                    message = "Supplier has Stocks";
+                    return new ResponseEntity<>(new ResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), "Supplier has Stocks", null), HttpStatus.NOT_ACCEPTABLE);
                 }
             } else{
-                status = HttpStatus.NO_CONTENT.value();
-                message = "Supplier not Found";
+                return new ResponseEntity<>(new ResponseDto(HttpStatus.NO_CONTENT.value(), "Supplier Not Found", null), HttpStatus.NO_CONTENT);
             }
         } catch (Exception ex){
             ex.printStackTrace();
-            status = HttpStatus.EXPECTATION_FAILED.value();
-            message = ex.getMessage();
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        responseDto.setStatus(status);
-        responseDto.setMessage(message);
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 
     public ResponseEntity<?> getSupIdNameList(){
@@ -248,15 +214,9 @@ public class SupplierService {
 
                 idNameDtoList.add(idNameDto);
             }
-            responseDto.setStatus(HttpStatus.OK.value());
-            responseDto.setMessage("Supplier List");
-            responseDto.setData(idNameDtoList);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.OK.value(), SUCCESS, idNameDtoList), HttpStatus.OK);
         } catch (Exception ex){
-            ex.printStackTrace();
-            responseDto.setStatus(HttpStatus.EXPECTATION_FAILED.value());
-            responseDto.setMessage("Technical Failure");
-            responseDto.setData(null);
+            return new ResponseEntity<>(new ResponseDto(HttpStatus.EXPECTATION_FAILED.value(), EXCEPTION, null), HttpStatus.EXPECTATION_FAILED);
         }
-        return new ResponseEntity<>(responseDto, HttpStatus.OK);
     }
 }
